@@ -3,11 +3,6 @@
 
 #### Compute - EC2 ####
 
-variable "image_id" {
-  description = "The id of the server image"
-  type        = string
-}
-
 variable "instance_type" {
   description = "The type of the server"
   type        = string
@@ -18,8 +13,8 @@ variable "server_port" {
   type        = number
 }
 
-variable "web_security_group_name" {
-  description = "The name of the web security group"
+variable "bastion_security_group_name" {
+  description = "The name of the bastion security group"
   type        = string
 }
 
