@@ -104,6 +104,8 @@ resource "aws_instance" "bastion" {
     Name = "Bastion"
   }
 
+  user_data_replace_on_change = true
+
   # 여기서 Role이 아니라 'Instance Profile'을 연결합니다.
   iam_instance_profile = aws_iam_instance_profile.bastion_profile.name
 
