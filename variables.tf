@@ -23,18 +23,6 @@ variable "my_ip" {
   type        = string
 }
 
-#### Compute - ALB ####
-
-variable "alb_security_group_name" {
-  description = "The name of the alb security group"
-  type        = string
-}
-
-variable "alb_name" {
-  description = "The name of the alb"
-  type        = string
-}
-
 #### Database - RDS ####
 
 variable "db_security_group_name" {
