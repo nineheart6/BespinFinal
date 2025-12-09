@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# 패키지 목록 업데이트
+apt-get update -y
+
+# mysql-client 설치
+# DEBIAN_FRONTEND=noninteractive는 설치 도중 'Yes/No'를 묻는 창이 뜨지 않게 합니다.
+apt-get install -y mysql-client

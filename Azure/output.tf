@@ -25,6 +25,14 @@ output "mysql_suffix_name" {
   value = azurerm_mysql_flexible_server.mysql.name
 }
 
+output "db_connect_command" {
+  description = "Run this command to connect to the database immediately"
+  # 비밀번호에 특수문자가 있을 수 있으므로 작은따옴표('')로 감싸는 것이 안전합니다.
+  # -p와 비밀번호 사이에는 공백이 없어야 합니다.
+  value = "mysql -h ${azurerm_mysql_flexible_server.mysql.fqdn} -u ${var.db_admin_username} -p'${var.db_admin_password}' "
+}
+
+
 # # 중요: 생성된 DB 비밀번호 출력 (민감 정보이므로 sensitive=true)
 # output "mysql_admin_password" {
 #   value     = random_password.db_password.result
