@@ -1,7 +1,7 @@
 #aws에 로컬에서 생성한 키 등록
 resource "aws_key_pair" "mykey" {
   key_name   = "mykey"
-  public_key = file("${path.module}/keys/mykey.pub")
+  public_key = file("${var.key_path}/mykey.pub")
 }
 
 #### Compute - EC2 ####

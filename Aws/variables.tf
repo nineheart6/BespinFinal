@@ -3,6 +3,11 @@
 
 #### Compute - EC2 ####
 
+variable "key_path" {
+  description = "Public Key 파일이 위치한 로컬 디렉터리 경로"
+  type        = string
+}
+
 variable "instance_type" {
   description = "The type of the server"
   type        = string
