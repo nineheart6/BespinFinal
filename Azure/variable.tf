@@ -27,3 +27,14 @@ variable "subscription_id" {
   description = "Azure Subscription ID"
   type        = string
 }
+
+# DB 관련 변수 추가
+variable "db_admin_username" {
+  description = "MySQL 관리자 계정 이름"
+  type        = string
+}
+
+variable "db_admin_password" {
+  description = "MySQL 관리자 계정 비밀번호"
+  type        = string
+}

@@ -31,7 +31,7 @@ resource "aws_vpc_security_group_egress_rule" "allow_all_db" {
 
 resource "aws_db_subnet_group" "tf-db" {
   name       = "tf-db subnet group"
-  subnet_ids = [aws_subnet.pri_a.id, aws_subnet.pri_c.id]
+  subnet_ids = [aws_subnet.db_pri_a.id, aws_subnet.db_pri_c.id]
 
   tags = {
     Name = "tf-db subnet group"

@@ -1,0 +1,81 @@
+# # 1. DB 접속 비밀번호 자동 생성 (보안을 위해 랜덤 생성)
+# resource "random_password" "db_password" {
+#   length           = 16
+#   special          = true
+#   override_special = "!#$%&*()-_=+[]{}<>:?"
+# }
+
+# 서버 이름 중복 방지용 랜덤 접미사 (소문자 + 숫자)
+resource "random_string" "server_suffix" {
+  length  = 8
+  special = false
+  upper   = false 
+  numeric = true
+}
+
+# 2. Private DNS Zone (VNet 통합을 위해 필수)
+resource "azurerm_private_dns_zone" "dns_zone" {
+  name                = "bespin.mysql.database.azure.com"
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+# 3. Private DNS와 VNet 연결
+resource "azurerm_private_dns_zone_virtual_network_link" "dns_link" {
+  name                  = "bespin-dns-link"
+  private_dns_zone_name = azurerm_private_dns_zone.dns_zone.name
+  virtual_network_id    = azurerm_virtual_network.vnet.id
+  resource_group_name   = azurerm_resource_group.rg.name
+}
+
+# 4. DB용 네트워크 보안 그룹 (NSG) - 3306 포트 허용
+resource "azurerm_network_security_group" "db_nsg" {
+  name                = "db-nsg"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  security_rule {
+    name                       = "AllowMySQL"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "3306"
+    source_address_prefix      = "10.0.0.0/16" # VNet 내부에서만 접근 가능하도록 설정
+    destination_address_prefix = "*"
+  }
+}
+
+# 5. DB 서브넷에 NSG 연결
+resource "azurerm_subnet_network_security_group_association" "db_nsg_assoc" {
+  subnet_id                 = azurerm_subnet.db_subnet.id
+  network_security_group_id = azurerm_network_security_group.db_nsg.id
+}
+
+#6,7로 나누어서 설정하는 이
+
+# 6. Azure Database for MySQL Flexible Server 생성
+resource "azurerm_mysql_flexible_server" "mysql" {
+  name                   = "mysql-${random_string.server_suffix.result}" # 유니크한 이름 필요
+  resource_group_name    = azurerm_resource_group.rg.name
+  location               = azurerm_resource_group.rg.location
+  administrator_login    = var.db_admin_username
+  administrator_password = var.db_admin_password
+  sku_name               = "B_Standard_B1s" # 실습용 가장 저렴한 SKU
+  
+  # 중요: VNet 통합 설정
+  delegated_subnet_id    = azurerm_subnet.db_subnet.id
+  private_dns_zone_id    = azurerm_private_dns_zone.dns_zone.id
+
+  # DNS 연결이 먼저 되어야 함
+  depends_on = [azurerm_private_dns_zone_virtual_network_link.dns_link]
+}
+
+# 7. 실제 데이터베이스 생성 (Schema)
+resource "azurerm_mysql_flexible_database" "database" {
+  name                = "bespindb"
+  resource_group_name = azurerm_resource_group.rg.name
+  server_name         = azurerm_mysql_flexible_server.mysql.name
+  charset             = "utf8mb4"
+  collation           = "utf8mb4_unicode_ci"
+}

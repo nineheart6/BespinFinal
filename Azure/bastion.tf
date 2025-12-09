@@ -3,6 +3,26 @@
 # 실제 서버와 랜카드(NIC)를 생성합니다.
 # -------------------------------------------------------------------
 
+# 0. 네트워크 보안 그룹 (NSG): 가상 방화벽 역할
+resource "azurerm_network_security_group" "nsg" {
+  name                = "${var.vm_name}-nsg"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  # SSH 접속 허용 규칙 (포트 22)
+  security_rule {
+    name                       = "SSH"
+    priority                   = 1001      # 우선순위 (낮을수록 먼저 적용됨)
+    direction                  = "Inbound" # 들어오는 트래픽
+    access                     = "Allow"   # 허용
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"      # 목적지 포트 (SSH)
+    source_address_prefix      = "*"       # 모든 출발지 IP 허용 (보안상 특정 IP로 제한하는 것이 좋음)
+    destination_address_prefix = "*"
+  }
+}
+
 # 1. 네트워크 인터페이스 (NIC): 가상 랜카드
 resource "azurerm_network_interface" "nic" {
   name                = "${var.vm_name}-nic"
@@ -11,9 +31,9 @@ resource "azurerm_network_interface" "nic" {
 
   ip_configuration {
     name                          = "internal"
-    subnet_id                     = azurerm_subnet.subnet.id # 위에서 만든 서브넷에 연결
-    private_ip_address_allocation = "Dynamic"                # 사설 IP는 자동 할당
-    public_ip_address_id          = azurerm_public_ip.pip.id # 공인 IP 연결
+    subnet_id                     = azurerm_subnet.subnet.id
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.pip.id
   }
 }
 
