@@ -180,7 +180,7 @@ resource "aws_subnet" "eks_pri_a" {
   availability_zone = "ap-northeast-2a"
 
   tags = {
-    Name = "tf-db-subnet-private1-ap-northeast-2a"
+    Name = "tf-eks-subnet-private1-ap-northeast-2a"
   }
 }
 
@@ -190,7 +190,7 @@ resource "aws_subnet" "eks_pri_c" {
   availability_zone = "ap-northeast-2c"
 
   tags = {
-    Name = "tf-db-subnet-private2-ap-northeast-2c"
+    Name = "tf-eks-subnet-private2-ap-northeast-2c"
   }
 }
 

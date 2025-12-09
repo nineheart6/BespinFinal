@@ -8,7 +8,7 @@ resource "azurerm_resource_group" "rg" {
 # 2. 가상 네트워크 (VNet): 사설 네트워크 공간 정의
 resource "azurerm_virtual_network" "vnet" {
   name                = "${var.vm_name}-vnet"
-  address_space       = ["10.0.0.0/16"] # 10.0.x.x 대역 전체 사용
+  address_space       = ["192.168.0.0/16"] # aws와 다르게
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 }
@@ -18,7 +18,7 @@ resource "azurerm_subnet" "subnet" {
   name                 = "default"
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.1.0/24"] # 10.0.1.x 대역 사용
+  address_prefixes     = ["192.168.1.0/24"] # 10.0.1.x 대역 사용
   
 }
 
@@ -27,8 +27,7 @@ resource "azurerm_subnet" "db_subnet" {
   name                 = "db-subnet"
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.2.0/24"]
-  
+  address_prefixes     = ["192.168.2.0/24"]
   service_endpoints    = ["Microsoft.Storage"]
 
   delegation {
@@ -54,4 +53,47 @@ resource "azurerm_public_ip" "pip" {
   allocation_method   = "Static"
   #기본값
   #sku                 = "Standard" # Availability Zone 등을 지원하는 표준 SKU
+}
+
+# ---------------------------------------------------------
+# [추가] VPN Gateway 관련 리소스
+# ---------------------------------------------------------
+
+# 6. Gateway 전용 서브넷 (이름은 반드시 GatewaySubnet 이어야 함)
+resource "azurerm_subnet" "gateway_subnet" {
+  name                 = "GatewaySubnet"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["192.168.255.0/24"]
+}
+
+# 7. VPN Gateway용 공인 IP
+resource "azurerm_public_ip" "vpn_pip" {
+  name                = "vpn-gateway-pip"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  sku                 = "Standard"
+  allocation_method   = "Static"
+}
+
+# 8. Virtual Network Gateway (VPN Gateway 본체)
+resource "azurerm_virtual_network_gateway" "vpn_gateway" {
+  name                = "migration-vpn-gateway"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  type     = "Vpn"
+  vpn_type = "RouteBased"
+
+  active_active = false
+  enable_bgp    = false
+  sku           = "VpnGw1" # 실습용으로 적절 (Basic은 제약이 많음)
+  generation    = "Generation1"
+
+  ip_configuration {
+    name                          = "vnetGatewayConfig"
+    public_ip_address_id          = azurerm_public_ip.vpn_pip.id
+    private_ip_address_allocation = "Dynamic"
+    subnet_id                     = azurerm_subnet.gateway_subnet.id
+  }
 }

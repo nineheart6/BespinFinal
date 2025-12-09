@@ -38,6 +38,19 @@ resource "aws_db_subnet_group" "tf-db" {
   }
 }
 
+
+#둘다 UTC가 default?
+# resource "aws_db_parameter_group" "seoul" {
+#   name   = "parameter-group-for-timezone"
+#   family = "mysql8.0" # 사용 중인 DB 엔진 버전에 맞게 수정
+  
+#   # 'Asia/Seoul'로 time_zone 파라미터 설정
+#   parameter {
+#     name  = "time_zone"
+#     value = "Asia/Seoul"
+#   }
+# }
+
 resource "aws_db_instance" "tf-db" {
   identifier          = "tf-db"
   allocated_storage   = 10
@@ -51,4 +64,5 @@ resource "aws_db_instance" "tf-db" {
   #multi_az               = true #이중화
   db_subnet_group_name   = aws_db_subnet_group.tf-db.name
   vpc_security_group_ids = [aws_security_group.db.id]
+  #parameter_group_name = aws_db_parameter_group.seoul.name
 }

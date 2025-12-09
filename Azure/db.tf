@@ -41,7 +41,7 @@ resource "azurerm_network_security_group" "db_nsg" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "3306"
-    source_address_prefix      = "10.0.0.0/16" # VNet 내부에서만 접근 가능하도록 설정
+    source_address_prefix      = "192.168.0.0/16" # VNet 내부에서만 접근 가능하도록 설정
     destination_address_prefix = "*"
   }
 }
@@ -51,8 +51,6 @@ resource "azurerm_subnet_network_security_group_association" "db_nsg_assoc" {
   subnet_id                 = azurerm_subnet.db_subnet.id
   network_security_group_id = azurerm_network_security_group.db_nsg.id
 }
-
-#6,7로 나누어서 설정하는 이
 
 # 6. Azure Database for MySQL Flexible Server 생성
 resource "azurerm_mysql_flexible_server" "mysql" {
