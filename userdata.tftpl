@@ -1,5 +1,4 @@
 #!/bin/bash -ex
-#use Amazon Linux 2023
 # 스크립트 실행 중 오류 발생 시 즉시 중단
 set -e
 
@@ -10,27 +9,20 @@ sudo yum update -y
 export kubectl_version='1.33.5'
 export helm_version='3.19.0'
 export eksctl_version='0.215.0'
-
-
-# 아키텍처를 'amd64' (x86_64)로 고정
 export arch_name='amd64'
 
-# 2. eksctl 설치 (v0.215.0)
-echo "Installing eksctl v${eksctl_version}..."
-curl --silent --location "https://github.com/eksctl-io/eksctl/releases/download/v${eksctl_version}/eksctl_Linux_${arch_name}.tar.gz" | tar xz -C /tmp
+# 2. eksctl 설치
+echo "Installing eksctl v$${eksctl_version}..."
+curl --silent --location "https://github.com/eksctl-io/eksctl/releases/download/v$${eksctl_version}/eksctl_Linux_$${arch_name}.tar.gz" | tar xz -C /tmp
 sudo mv /tmp/eksctl /usr/local/bin
-# 설치 확인
-#eksctl version
 
 # 3. kubectl 설치 
-echo "Installing kubectl v${kubectl_version}..."
-curl --silent --location -O "https://dl.k8s.io/release/v${kubectl_version}/bin/linux/${arch_name}/kubectl"
+echo "Installing kubectl v$${kubectl_version}..."
+curl --silent --location -O "https://dl.k8s.io/release/v$${kubectl_version}/bin/linux/$${arch_name}/kubectl"
 chmod +x ./kubectl
 sudo mv ./kubectl /usr/local/bin
-# 설치 확인
-#kubectl version --client
 
-#자동완성
+# 자동완성 설정
 source <(kubectl completion bash)
 echo "source <(kubectl completion bash)" >> ~/.bashrc
 alias k=kubectl
@@ -39,37 +31,27 @@ echo "alias k=kubectl" >> ~/.bashrc
 echo "complete -o default -F __start_kubectl k"  >> ~/.bashrc
 
 # 4. helm 설치 
-echo "Installing helm v${helm_version}..."
-curl --silent --location "https://get.helm.sh/helm-v${helm_version}-linux-${arch_name}.tar.gz" | tar xz
-sudo mv ./linux-${arch_name}/helm /usr/local/bin
-rm -rf ./linux-${arch_name} # 압축 해제 디렉터리 정리
-# 설치 확인
-#helm version
+echo "Installing helm v$${helm_version}..."
+curl --silent --location "https://get.helm.sh/helm-v$${helm_version}-linux-$${arch_name}.tar.gz" | tar xz
+sudo mv ./linux-$${arch_name}/helm /usr/local/bin
+rm -rf ./linux-$${arch_name}
 
-# 5. Docker 설치 (이미지 빌드용)
+# 5. Docker 설치
 echo "Installing Docker..."
-#관리도구 (Docker Git jq) 설치:
 sudo yum install git jq docker -y
-#ec2-user 권한 추가:
 sudo usermod -aG docker ec2-user
 newgrp docker
-#Docker 서비스 시작: 느려서 밖에서 사용
-#sudo systemctl enable --now docker
-#자동완성
 sudo dnf install bash-completion -y
 source /usr/share/bash-completion/bash_completion
 
-#docker --version
-
-# 6. Git 설치 (선택 - Dockerfile 관리용)
-#echo "Installing Git..."
-#sudo yum install git -y
-# 설치 확인
-#git --version
-
-# 9. 작업 디렉터리 생성
+# 6. 작업 디렉터리 생성
 mkdir -p ~/petclinic-eks
 cd ~/petclinic-eks
 
 echo "EKS Petclinic 환경 구성이 완료되었습니다."
 echo "현재 디렉터리: $(pwd)"
+
+echo "Server Port: ${server_port}"
+
+#db테스트용
+yum install mariadb105
