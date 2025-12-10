@@ -38,3 +38,20 @@ variable "db_admin_password" {
   description = "MySQL 관리자 계정 비밀번호"
   type        = string
 }
+
+# --- [추가] AWS VPN 연결 정보 ---
+variable "aws_vpc_cidr" {
+  description = "AWS VPC의 내부 CIDR (예: 10.0.0.0/16)"
+  type        = string
+}
+
+variable "aws_vpn_public_ip" {
+  description = "AWS VPN 터널의 외부(Public) IP (Tunnel 1 Outside IP)"
+  type        = string
+}
+
+variable "vpn_shared_key" {
+  description = "IPSec Pre-Shared Key (AWS에서 다운로드 받은 구성 파일의 공유 키)"
+  type        = string
+  sensitive   = true
+}

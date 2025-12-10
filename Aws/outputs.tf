@@ -14,3 +14,27 @@ output "server_ip" {
   description = "ip of ec2"
   value       = aws_instance.bastion.public_ip
 }
+
+# Tunnel 1 정보
+output "vpn_tunnel1_address" {
+  description = "The public IP address of the first VPN tunnel"
+  value       = aws_vpn_connection.main.tunnel1_address
+}
+
+output "vpn_tunnel1_preshared_key" {
+  description = "The preshared key of the first VPN tunnel"
+  value       = aws_vpn_connection.main.tunnel1_preshared_key
+  sensitive   = true # 민감 정보이므로 콘솔에 바로 노출되지 않음
+}
+
+# Tunnel 2 정보 (AWS VPN은 이중화를 위해 항상 2개의 터널을 제공함)
+/* output "vpn_tunnel2_address" {
+  description = "The public IP address of the second VPN tunnel"
+  value       = aws_vpn_connection.main.tunnel2_address
+}
+
+output "vpn_tunnel2_preshared_key" {
+  description = "The preshared key of the second VPN tunnel"
+  value       = aws_vpn_connection.main.tunnel2_preshared_key
+  #sensitive   = true
+} */

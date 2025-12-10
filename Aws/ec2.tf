@@ -95,10 +95,14 @@ resource "aws_instance" "bastion" {
   vpc_security_group_ids = [aws_security_group.bastion.id]
   subnet_id              = aws_subnet.pub_a.id
   key_name               = aws_key_pair.mykey.key_name
-  user_data = (templatefile("${path.module}/userdata.tftpl", {
+
+  user_data = templatefile("${path.module}/userdata.tftpl", {
     server_port = var.server_port
-    })
-  )
+    db_endpoint = aws_db_instance.tf-db.address # RDS 엔드포인트 주입
+    db_name     = var.db_name
+    db_username = var.db_username
+    db_password = var.db_password
+  })
 
   tags = {
     Name = "Bastion"

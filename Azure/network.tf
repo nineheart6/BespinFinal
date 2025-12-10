@@ -22,7 +22,7 @@ resource "azurerm_subnet" "subnet" {
   
 }
 
-# [추가] MySQL Flexible Server 전용 서브넷 (Delegation 필수)
+# MySQL Flexible Server 전용 서브넷 (Delegation 필수)
 resource "azurerm_subnet" "db_subnet" {
   name                 = "db-subnet"
   resource_group_name  = azurerm_resource_group.rg.name
@@ -82,6 +82,7 @@ resource "azurerm_virtual_network_gateway" "vpn_gateway" {
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
+  #암호화 설정
   type     = "Vpn"
   vpn_type = "RouteBased"
 
@@ -96,4 +97,31 @@ resource "azurerm_virtual_network_gateway" "vpn_gateway" {
     private_ip_address_allocation = "Dynamic"
     subnet_id                     = azurerm_subnet.gateway_subnet.id
   }
+}
+
+# 1. Local Network Gateway (AWS의 정보를 Azure에 등록)
+resource "azurerm_local_network_gateway" "aws_lng" {
+  name                = "aws-local-gateway"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  
+  # AWS VPN 터널의 외부 IP (3.x.x.x 등)
+  gateway_address     = var.aws_vpn_public_ip
+  
+  # AWS VPC 내부 CIDR (10.0.0.0/16 등) - 라우팅을 위해 필수
+  address_space       = [var.aws_vpc_cidr]
+}
+
+# 2. Connection (Azure Gateway와 AWS Gateway를 연결)
+resource "azurerm_virtual_network_gateway_connection" "azure_to_aws" {
+  name                = "azure-to-aws-connection"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  type                       = "IPsec"
+  virtual_network_gateway_id = azurerm_virtual_network_gateway.vpn_gateway.id
+  local_network_gateway_id   = azurerm_local_network_gateway.aws_lng.id
+
+  # AWS에서 설정한 Pre-Shared Key와 동일해야 함
+  shared_key = var.vpn_shared_key
 }

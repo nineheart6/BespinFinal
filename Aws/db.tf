@@ -43,7 +43,7 @@ resource "aws_db_subnet_group" "tf-db" {
 # resource "aws_db_parameter_group" "seoul" {
 #   name   = "parameter-group-for-timezone"
 #   family = "mysql8.0" # 사용 중인 DB 엔진 버전에 맞게 수정
-  
+
 #   # 'Asia/Seoul'로 time_zone 파라미터 설정
 #   parameter {
 #     name  = "time_zone"

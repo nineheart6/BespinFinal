@@ -21,6 +21,19 @@ resource "azurerm_network_security_group" "nsg" {
     source_address_prefix      = "*"       # 모든 출발지 IP 허용 (보안상 특정 IP로 제한하는 것이 좋음)
     destination_address_prefix = "*"
   }
+
+  # AWS에서 들어오는 Ping(ICMP) 및 모든 트래픽 허용
+  security_rule {
+    name                       = "AllowAWSInbound"
+    priority                   = 1002
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"  # TCP, UDP, ICMP 모두 허용
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = var.aws_vpc_cidr # AWS VPC 대역 (예: 10.0.0.0/16)
+    destination_address_prefix = "*"
+  }
 }
 
 # 1. 네트워크 인터페이스 (NIC): 가상 랜카드

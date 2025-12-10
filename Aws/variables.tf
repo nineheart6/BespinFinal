@@ -50,3 +50,19 @@ variable "db_name" {
   description = "The password of the RDS"
   type        = string
 }
+
+#### Azure VPN Info ####
+variable "azure_public_ip" {
+  description = "Azure VPN Gateway Public IP (Customer Gateway IP)"
+  type        = string
+}
+
+variable "azure_bgp_asn" {
+  description = "Azure side BGP ASN (e.g., 65515)"
+  type        = number
+}
+
+variable "azure_cidr" {
+  description = "Azure VNet CIDR Block (e.g., 10.1.0.0/16)"
+  type        = string
+}

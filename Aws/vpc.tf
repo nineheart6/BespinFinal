@@ -204,3 +204,64 @@ resource "aws_route_table_association" "eks_pri_c" {
   subnet_id      = aws_subnet.eks_pri_c.id
   route_table_id = aws_route_table.pri_c.id
 }
+
+#### vpn gateway ####
+
+# 1. VPN Gateway (VGW) - AWS측 관문
+resource "aws_vpn_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "tf-vpn-aws-gateway"
+  }
+}
+
+# 2. Customer Gateway (CGW) - 고객(온프레미스)측 관문
+resource "aws_customer_gateway" "main" {
+  bgp_asn    = var.azure_bgp_asn 
+  ip_address = var.azure_public_ip
+  type       = "ipsec.1"
+
+  tags = {
+    Name = "tf-customer-azure-gateway"
+  }
+}
+
+# 3. VPN Connection - VGW와 CGW 연결
+resource "aws_vpn_connection" "main" {
+  vpn_gateway_id      = aws_vpn_gateway.main.id
+  customer_gateway_id = aws_customer_gateway.main.id
+  type                = "ipsec.1"
+  static_routes_only  = true # BGP를 안 쓴다면 True로 설정
+
+  tags = {
+    Name = "tf-vpn-connection"
+  }
+}
+
+# 4. [중요!] VPN Static Route 추가
+# "이 CIDR 대역은 VPN 건너편에 있으니 VPN 터널로 보내라"고 정의
+resource "aws_vpn_connection_route" "azure" {
+  destination_cidr_block = var.azure_cidr
+  vpn_connection_id      = aws_vpn_connection.main.id
+}
+
+# 5. VPC Route Table에 명시적 라우트 추가
+# "Propagation(자동 전파)" 대신 "Route(수동 추가)" 사용
+resource "aws_route" "vpn_access_pub" {
+  route_table_id         = aws_route_table.pub.id
+  destination_cidr_block = var.azure_cidr
+  gateway_id             = aws_vpn_gateway.main.id
+}
+
+resource "aws_route" "vpn_access_pri_a" {
+  route_table_id         = aws_route_table.pri_a.id
+  destination_cidr_block = var.azure_cidr
+  gateway_id             = aws_vpn_gateway.main.id
+}
+
+resource "aws_route" "vpn_access_pri_c" {
+  route_table_id         = aws_route_table.pri_c.id
+  destination_cidr_block = var.azure_cidr
+  gateway_id             = aws_vpn_gateway.main.id
+}
