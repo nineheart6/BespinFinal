@@ -9,7 +9,7 @@
 resource "random_string" "server_suffix" {
   length  = 8
   special = false
-  upper   = false 
+  upper   = false
   numeric = true
 }
 
@@ -44,6 +44,17 @@ resource "azurerm_network_security_group" "db_nsg" {
     source_address_prefix      = "192.168.0.0/16" # VNet 내부에서만 접근 가능하도록 설정
     destination_address_prefix = "*"
   }
+  security_rule {
+    name                       = "AllowAwsMySQL"
+    priority                   = 110
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "3306"
+    source_address_prefix      = var.aws_vpc_cidr # aws vpc 내부에서만 접근 가능하도록 설정
+    destination_address_prefix = "*"
+  }
 }
 
 # 5. DB 서브넷에 NSG 연결
@@ -54,19 +65,31 @@ resource "azurerm_subnet_network_security_group_association" "db_nsg_assoc" {
 
 # 6. Azure Database for MySQL Flexible Server 생성
 resource "azurerm_mysql_flexible_server" "mysql" {
-  name                   = "mysql-${random_string.server_suffix.result}" # 유니크한 이름 필요
+  name                   = "mysql-${random_string.server_suffix.result}"
   resource_group_name    = azurerm_resource_group.rg.name
   location               = azurerm_resource_group.rg.location
   administrator_login    = var.db_admin_username
   administrator_password = var.db_admin_password
-  sku_name               = "B_Standard_B1ms" # 실습용 가장 저렴한 SKU
+  sku_name               = "B_Standard_B1ms" 
   
+  # ★ 핵심 변경 사항: AWS RDS(8.0)와 버전을 맞춤
+  version                = "8.0.21" 
+
   # 중요: VNet 통합 설정
   delegated_subnet_id    = azurerm_subnet.db_subnet.id
   private_dns_zone_id    = azurerm_private_dns_zone.dns_zone.id
 
   # DNS 연결이 먼저 되어야 함
   depends_on = [azurerm_private_dns_zone_virtual_network_link.dns_link]
+}
+
+# 6-1. Azure Database 설정값 변경
+resource "azurerm_mysql_flexible_server_configuration" "no_ssl" {
+  #네임값이 중요하다. 실제 옵션을 이 네임으로 지정하는 듯?
+  name                = "require_secure_transport"
+  resource_group_name = azurerm_resource_group.rg.name
+  server_name         = azurerm_mysql_flexible_server.mysql.name
+  value               = "OFF"
 }
 
 # 7. 실제 데이터베이스 생성 (Schema)

@@ -1,6 +1,8 @@
 # BespinFinal
 ## Aws
 기본 인프라 + bastion 서버 코드
+VPN + AWS DMS 완성
+DMS는 콘솔에서 진행
 
 ## Azure
 기본 vm 테스트

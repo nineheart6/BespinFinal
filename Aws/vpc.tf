@@ -53,7 +53,7 @@ resource "aws_route_table" "pub" {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.gw.id
   }
-
+  
   tags = {
     Name = "tf-rtb-public-ap-northeast"
   }
@@ -142,6 +142,7 @@ resource "aws_route_table" "pri_a" {
     cidr_block     = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.pri_a.id
   }
+
 
   tags = {
     Name = "tf-rtb-private1-ap-northeast-2a"
@@ -248,7 +249,7 @@ resource "aws_vpn_connection_route" "azure" {
 
 # 5. VPC Route Table에 명시적 라우트 추가
 # "Propagation(자동 전파)" 대신 "Route(수동 추가)" 사용
-resource "aws_route" "vpn_access_pub" {
+/* resource "aws_route" "vpn_access_pub" {
   route_table_id         = aws_route_table.pub.id
   destination_cidr_block = var.azure_cidr
   gateway_id             = aws_vpn_gateway.main.id
@@ -264,4 +265,90 @@ resource "aws_route" "vpn_access_pri_c" {
   route_table_id         = aws_route_table.pri_c.id
   destination_cidr_block = var.azure_cidr
   gateway_id             = aws_vpn_gateway.main.id
+} */
+
+# Public Route Table에 VPN 경로 전파
+resource "aws_vpn_gateway_route_propagation" "pub" {
+  vpn_gateway_id = aws_vpn_gateway.main.id
+  route_table_id = aws_route_table.pub.id
+}
+
+# Private Route Table A에 VPN 경로 전파
+resource "aws_vpn_gateway_route_propagation" "pri_a" {
+  vpn_gateway_id = aws_vpn_gateway.main.id
+  route_table_id = aws_route_table.pri_a.id
+}
+
+# Private Route Table C에 VPN 경로 전파
+resource "aws_vpn_gateway_route_propagation" "pri_c" {
+  vpn_gateway_id = aws_vpn_gateway.main.id
+  route_table_id = aws_route_table.pri_c.id
+}
+
+####################################################
+# aws_route53_resolver로 azure dns reslover를 사용
+####################################################
+# 1. Resolver용 Security Group 생성
+# (AWS에서 Azure 쪽으로 DNS 쿼리(UDP/TCP 53)가 나갈 수 있게 허용해야 합니다)
+resource "aws_security_group" "dns_resolver_sg" {
+  name        = "dns-resolver-outbound-sg"
+  description = "Allow DNS outbound traffic to Azure"
+  vpc_id      = aws_vpc.main.id # 사용자의 VPC ID 참조
+
+  # Outbound: DNS 쿼리(53)를 모든 곳(또는 Azure VPN 대역)으로 허용
+  egress {
+    from_port   = 53
+    to_port     = 53
+    protocol    = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 53
+    to_port     = 53
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# 2. Route 53 Resolver Outbound Endpoint 생성
+# (AWS VPC -> 외부로 쿼리를 던지는 출구 인터페이스)
+resource "aws_route53_resolver_endpoint" "outbound" {
+  name      = "azure-dns-outbound-endpoint"
+  direction = "OUTBOUND"
+
+  security_group_ids = [aws_security_group.dns_resolver_sg.id]
+
+  # 최소 2개의 가용 영역(AZ)에 있는 서브넷 지정 권장
+  ip_address {
+    subnet_id = aws_subnet.db_pri_a.id # 사용자의 서브넷 ID 1
+  }
+
+  ip_address {
+    subnet_id = aws_subnet.db_pri_c.id # 사용자의 서브넷 ID 2
+  }
+}
+
+# 3. Resolver Rule 생성 (핵심 로직)
+resource "aws_route53_resolver_rule" "azure_mysql_rule" {
+  name                 = "forward-azure-mysql"
+  domain_name          = "mysql.database.azure.com" # 포워딩할 도메인 (와일드카드 포함됨)
+  rule_type            = "FORWARD"
+  resolver_endpoint_id = aws_route53_resolver_endpoint.outbound.id
+
+  target_ip {
+    ip = var.azure_dns_ip
+  }
+  
+  # 만약 Azure DNS 서버가 여러 대라면 target_ip 블록을 추가
+  # target_ip {
+  #   ip = "192.169.200.5" 
+  # }
+}
+
+# 4. Rule을 VPC에 연결 (Association)
+# 이 설정이 있어야 실제 VPC 내의 인스턴스들이 이 규칙을 사용합니다.
+resource "aws_route53_resolver_rule_association" "azure_mysql_assoc" {
+  resolver_rule_id = aws_route53_resolver_rule.azure_mysql_rule.id
+  vpc_id           = aws_vpc.main.id # 규칙을 적용할 VPC ID
 }

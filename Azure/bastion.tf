@@ -17,8 +17,8 @@ resource "azurerm_network_security_group" "nsg" {
     access                     = "Allow"   # 허용
     protocol                   = "Tcp"
     source_port_range          = "*"
-    destination_port_range     = "22"      # 목적지 포트 (SSH)
-    source_address_prefix      = "*"       # 모든 출발지 IP 허용 (보안상 특정 IP로 제한하는 것이 좋음)
+    destination_port_range     = "22" # 목적지 포트 (SSH)
+    source_address_prefix      = "*"  # 모든 출발지 IP 허용 (보안상 특정 IP로 제한하는 것이 좋음)
     destination_address_prefix = "*"
   }
 
@@ -28,7 +28,7 @@ resource "azurerm_network_security_group" "nsg" {
     priority                   = 1002
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "*"  # TCP, UDP, ICMP 모두 허용
+    protocol                   = "*" # TCP, UDP, ICMP 모두 허용
     source_port_range          = "*"
     destination_port_range     = "*"
     source_address_prefix      = var.aws_vpc_cidr # AWS VPC 대역 (예: 10.0.0.0/16)

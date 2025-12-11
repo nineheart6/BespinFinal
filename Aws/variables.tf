@@ -51,18 +51,23 @@ variable "db_name" {
   type        = string
 }
 
-#### Azure VPN Info ####
+#### Azure Info ####
 variable "azure_public_ip" {
   description = "Azure VPN Gateway Public IP (Customer Gateway IP)"
   type        = string
 }
 
 variable "azure_bgp_asn" {
-  description = "Azure side BGP ASN (e.g., 65515)"
+  description = "Azure side BGP ASN (e.g., 65000)"
   type        = number
 }
 
 variable "azure_cidr" {
   description = "Azure VNet CIDR Block (e.g., 10.1.0.0/16)"
+  type        = string
+}
+
+variable "azure_dns_ip" {
+  description = "Azure Private Resolver ip"
   type        = string
 }

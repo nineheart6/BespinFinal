@@ -1,10 +1,10 @@
-output "resource_group_name" {
+/* output "resource_group_name" {
   value = azurerm_resource_group.rg.name
 }
 
 output "public_ip_address" {
   value = azurerm_public_ip.pip.ip_address
-}
+} */
 
 # 접속 편의를 위해 개인키 경로를 절대 경로로 조합하여 출력합니다.
 output "ssh_command" {
@@ -12,26 +12,20 @@ output "ssh_command" {
 }
 
 # DB 접속 정보 출력
-output "mysql_server_host" {
-  value       = azurerm_mysql_flexible_server.mysql.fqdn
-  description = "MySQL 서버 접속 주소 (Bastion에서만 접속 가능)"
-}
-
-output "mysql_admin_username" {
-  value = var.db_admin_username
-}
-
-output "mysql_suffix_name" {
-  value = azurerm_mysql_flexible_server.mysql.name
-}
-
 output "db_connect_command" {
-  description = "Run this command to connect to the database immediately"
-  # 비밀번호에 특수문자가 있을 수 있으므로 작은따옴표('')로 감싸는 것이 안전합니다.
-  # -p와 비밀번호 사이에는 공백이 없어야 합니다.
   value = "mysql -h ${azurerm_mysql_flexible_server.mysql.fqdn} -u ${var.db_admin_username} -p'${var.db_admin_password}' "
 }
 
+#### aws tfvars입력 정보 ####
+
+# vpn ip
+output "azure_public_ip" {
+  value = azurerm_public_ip.vpn_pip.ip_address
+}
+output "azure_dns_inbound_ip" {
+  description = "AWS Route 53 Resolver가 쿼리를 보낼 Azure DNS Inbound IP"
+  value       = azurerm_private_dns_resolver_inbound_endpoint.dns_inbound.ip_configurations[0].private_ip_address
+}
 
 # # 중요: 생성된 DB 비밀번호 출력 (민감 정보이므로 sensitive=true)
 # output "mysql_admin_password" {
