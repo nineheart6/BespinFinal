@@ -21,4 +21,5 @@ az account list --output table
 
 ## 추가
 ### 키 파일 위치 
+ssh-keygen -m PEM -f mykey -N ""
 ssh_public_key_path = "../keys/mykey.pub"
