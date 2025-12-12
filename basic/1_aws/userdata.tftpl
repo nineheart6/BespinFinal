@@ -1,0 +1,85 @@
+#!/bin/bash -ex
+# 스크립트 실행 중 오류 발생 시 즉시 중단
+set -e
+
+# 시스템 패키지 최신 상태로 업데이트
+sudo yum update -y
+
+# 1. 버전 변수 및 아키텍처 설정
+export kubectl_version='1.33.5'
+export helm_version='3.19.0'
+export eksctl_version='0.215.0'
+export arch_name='amd64'
+
+# 2. eksctl 설치
+echo "Installing eksctl v$${eksctl_version}..."
+curl --silent --location "https://github.com/eksctl-io/eksctl/releases/download/v$${eksctl_version}/eksctl_Linux_$${arch_name}.tar.gz" | tar xz -C /tmp
+sudo mv /tmp/eksctl /usr/local/bin
+
+# 3. kubectl 설치 
+echo "Installing kubectl v$${kubectl_version}..."
+curl --silent --location -O "https://dl.k8s.io/release/v$${kubectl_version}/bin/linux/$${arch_name}/kubectl"
+chmod +x ./kubectl
+sudo mv ./kubectl /usr/local/bin
+
+# 자동완성 설정
+source <(kubectl completion bash)
+echo "source <(kubectl completion bash)" >> ~/.bashrc
+alias k=kubectl
+complete -o default -F __start_kubectl k
+echo "alias k=kubectl" >> ~/.bashrc
+echo "complete -o default -F __start_kubectl k"  >> ~/.bashrc
+
+# 4. helm 설치 
+echo "Installing helm v$${helm_version}..."
+curl --silent --location "https://get.helm.sh/helm-v$${helm_version}-linux-$${arch_name}.tar.gz" | tar xz
+sudo mv ./linux-$${arch_name}/helm /usr/local/bin
+rm -rf ./linux-$${arch_name}
+
+# 5. Docker 설치
+echo "Installing Docker..."
+sudo yum install git jq docker -y
+sudo usermod -aG docker ec2-user
+newgrp docker
+sudo dnf install bash-completion -y
+source /usr/share/bash-completion/bash_completion
+
+# 6. 작업 디렉터리 생성
+mkdir -p ~/petclinic-eks
+cd ~/petclinic-eks
+
+echo "EKS Petclinic 환경 구성이 완료되었습니다."
+echo "현재 디렉터리: $(pwd)"
+
+echo "Server Port: ${server_port}"
+
+#DB 테스트용 클라이언트 설치
+yum install mariadb105 -y
+
+# Terraform 변수로 받은 DB 접속 정보
+DB_HOST="${db_endpoint}"
+DB_USER="${db_username}"
+DB_PASS="${db_password}"
+DB_NAME="${db_name}"
+
+# DB 접속 대기 (RDS가 완전히 준비될 때까지 재시도)
+echo "Waiting for RDS to be ready..."
+until mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" -e "status" &> /dev/null; do
+  echo "RDS is unavailable - sleeping"
+  sleep 5
+done
+
+echo "RDS is up! Executing SQL..."
+
+# 테이블 생성 및 데이터 삽입 (SQL)
+# INSERT IGNORE: 이미 데이터가 있으면 에러 없이 넘어감
+mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" <<EOF
+CREATE TABLE IF NOT EXISTS customer (
+    id INT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL
+);
+
+INSERT IGNORE INTO customer (id, name) VALUES (1, 'james');
+EOF
+
+echo "Database Initialization Completed!"

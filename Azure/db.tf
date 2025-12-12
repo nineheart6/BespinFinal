@@ -70,14 +70,14 @@ resource "azurerm_mysql_flexible_server" "mysql" {
   location               = azurerm_resource_group.rg.location
   administrator_login    = var.db_admin_username
   administrator_password = var.db_admin_password
-  sku_name               = "B_Standard_B1ms" 
-  
+  sku_name               = "B_Standard_B1ms"
+
   # ★ 핵심 변경 사항: AWS RDS(8.0)와 버전을 맞춤
-  version                = "8.0.21" 
+  version = "8.0.21"
 
   # 중요: VNet 통합 설정
-  delegated_subnet_id    = azurerm_subnet.db_subnet.id
-  private_dns_zone_id    = azurerm_private_dns_zone.dns_zone.id
+  delegated_subnet_id = azurerm_subnet.db_subnet.id
+  private_dns_zone_id = azurerm_private_dns_zone.dns_zone.id
 
   # DNS 연결이 먼저 되어야 함
   depends_on = [azurerm_private_dns_zone_virtual_network_link.dns_link]
