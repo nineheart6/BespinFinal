@@ -49,30 +49,56 @@ resource "aws_db_subnet_group" "tf-db" {
 }
 
 
-#둘다 UTC가 default?
-# resource "aws_db_parameter_group" "seoul" {
-#   name   = "parameter-group-for-timezone"
-#   family = "mysql8.0" # 사용 중인 DB 엔진 버전에 맞게 수정
 
-#   # 'Asia/Seoul'로 time_zone 파라미터 설정
-#   parameter {
-#     name  = "time_zone"
-#     value = "Asia/Seoul"
-#   }
-# }
+# 1. 파라미터 그룹 생성 (여기서 binlog_format을 설정)
+resource "aws_db_parameter_group" "seoul" {
+  name   = "tf-db-mysql-params"
+  family = "mysql8.0"  # 사용하는 DB 엔진 버전과 맞춰야 합니다 (8.0)
 
+  # 1. Binlog 형식을 ROW로 설정
+  parameter {
+    name  = "binlog_format"
+    value = "ROW"
+    apply_method = "pending-reboot" # 재부팅 적용
+  }
+
+  # 2. GTID 모드 활성화 (추가됨)
+  parameter {
+    name         = "gtid-mode"
+    value        = "ON"
+    apply_method = "pending-reboot" # 재부팅 적용
+  }
+
+  # 3. GTID 일관성 강제 (필수 추가!)
+  # gtid_mode = ON을 위해서는 이 값이 반드시 ON이어야 합니다.
+  parameter {
+    name         = "enforce_gtid_consistency"
+    value        = "ON"
+    apply_method = "pending-reboot" # 재부팅 적용
+  }
+}
+
+# 2. DB 인스턴스 설정
 resource "aws_db_instance" "tf-db" {
-  identifier          = "tf-db"
-  allocated_storage   = 10
-  engine              = "mysql"
-  engine_version      = "8.0"
-  instance_class      = "db.t3.micro"
-  db_name             = var.db_name
-  username            = var.db_username
-  password            = var.db_password
-  skip_final_snapshot = true
+  identifier            = "tf-db"
+  allocated_storage     = 10
+  engine                = "mysql"
+  engine_version        = "8.0"
+  instance_class        = "db.t3.micro"
+  db_name               = var.db_name
+  username              = var.db_username
+  password              = var.db_password
   #multi_az               = true #이중화
+  skip_final_snapshot   = true
+  
+  # 1. 위에서 만든 파라미터 그룹 연결
+  parameter_group_name  = aws_db_parameter_group.seoul.name
+
+  # 2. 백업 보존 기간 설정 (필수!)
+  # 이 값이 0이면 바이너리 로그가 활성화되지 않아 복제가 불가능합니다.
+  # 최소 1일 이상 설정해야 합니다.
+  backup_retention_period = 1 
+
   db_subnet_group_name   = aws_db_subnet_group.tf-db.name
   vpc_security_group_ids = [aws_security_group.db.id]
-  #parameter_group_name = aws_db_parameter_group.seoul.name
 }

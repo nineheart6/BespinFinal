@@ -49,14 +49,15 @@ resource "aws_internet_gateway" "gw" {
 resource "aws_route_table" "pub" {
   vpc_id = aws_vpc.main.id
 
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.gw.id
-  }
-  
   tags = {
     Name = "tf-rtb-public-ap-northeast"
   }
+}
+
+resource "aws_route" "public_internet_access" {
+  route_table_id         = aws_route_table.pub.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.gw.id
 }
 
 #route에 subnet 등록
@@ -92,85 +93,51 @@ resource "aws_subnet" "db_pri_c" {
   }
 }
 
-#nat-gateway용 eip
-resource "aws_eip" "pub_a" {
+/* #nat-gateway용 eip
+resource "aws_eip" "pub" {
   domain = "vpc"
 
   tags = {
     "Name" = "tf-eip-ap-northeast-2a"
   }
-}
-
-resource "aws_eip" "pub_c" {
-  domain = "vpc"
-
-  tags = {
-    "Name" = "tf-eip-ap-northeast-2c"
-  }
-}
+} */
 
 #nat 생성
-resource "aws_nat_gateway" "pri_a" {
-  subnet_id     = aws_subnet.pub_a.id
-  allocation_id = aws_eip.pub_a.id
+#별도의 EIP(탄력적 IP) 리소스를 미리 생성 X
+resource "aws_nat_gateway" "regional" {
+  vpc_id = aws_vpc.main.id
+  availability_mode = "regional"
 
   tags = {
     "Name" = "tf-nat-public1-ap-northeast-2a"
   }
-
-  #recommend
-  depends_on = [aws_internet_gateway.gw]
-}
-
-resource "aws_nat_gateway" "pri_c" {
-  subnet_id     = aws_subnet.pub_c.id
-  allocation_id = aws_eip.pub_c.id
-
-  tags = {
-    "Name" = "tf-nat-public1-ap-northeast-2a"
-  }
-
   #recommend
   depends_on = [aws_internet_gateway.gw]
 }
 
 #route table 생성(+nat 할당)
-resource "aws_route_table" "pri_a" {
+resource "aws_route_table" "pri" {
   vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.pri_a.id
-  }
-
-
   tags = {
     Name = "tf-rtb-private1-ap-northeast-2a"
   }
 }
 
-resource "aws_route_table" "pri_c" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.pri_c.id
-  }
-
-  tags = {
-    Name = "tf-rtb-private2-ap-northeast-2c"
-  }
+resource "aws_route" "private_nat" {
+  route_table_id         = aws_route_table.pri.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.regional.id # 단일 ID 사용
 }
 
 #route에 subnet 등록
 resource "aws_route_table_association" "db_pri_a" {
   subnet_id      = aws_subnet.db_pri_a.id
-  route_table_id = aws_route_table.pri_a.id
+  route_table_id = aws_route_table.pri.id
 }
 
 resource "aws_route_table_association" "db_pri_c" {
   subnet_id      = aws_subnet.db_pri_c.id
-  route_table_id = aws_route_table.pri_c.id
+  route_table_id = aws_route_table.pri.id
 }
 
 ### eks private 서브넷 구성 ###
@@ -198,23 +165,30 @@ resource "aws_subnet" "eks_pri_c" {
 #route에 subnet 등록
 resource "aws_route_table_association" "eks_pri_a" {
   subnet_id      = aws_subnet.eks_pri_a.id
-  route_table_id = aws_route_table.pri_a.id
+  route_table_id = aws_route_table.pri.id
 }
 
 resource "aws_route_table_association" "eks_pri_c" {
   subnet_id      = aws_subnet.eks_pri_c.id
-  route_table_id = aws_route_table.pri_c.id
+  route_table_id = aws_route_table.pri.id
 }
 
 #### vpn gateway ####
 
 # 1. VPN Gateway (VGW) - AWS측 관문
 resource "aws_vpn_gateway" "main" {
-  vpc_id = aws_vpc.main.id
-
+  #라우팅 오류 해결을 위한 분리 작업
+  #vpc_id = aws_vpc.main.id
   tags = {
     Name = "tf-vpn-aws-gateway"
   }
+}
+
+# 1-2. [신규] VGW와 VPC를 명시적으로 연결 (Attachment)
+# 이 리소스가 완료되어야 "진짜로" 연결된 것입니다.
+resource "aws_vpn_gateway_attachment" "vpn_attachment" {
+  vpc_id         = aws_vpc.main.id
+  vpn_gateway_id = aws_vpn_gateway.main.id
 }
 
 # 2. Customer Gateway (CGW) - 고객(온프레미스)측 관문
@@ -249,41 +223,20 @@ resource "aws_vpn_connection_route" "azure" {
 
 # 5. VPC Route Table에 명시적 라우트 추가
 # "Propagation(자동 전파)" 대신 "Route(수동 추가)" 사용
-/* resource "aws_route" "vpn_access_pub" {
+resource "aws_route" "vpn_access_pub" {
   route_table_id         = aws_route_table.pub.id
   destination_cidr_block = var.azure_cidr
   gateway_id             = aws_vpn_gateway.main.id
+  depends_on = [aws_vpn_gateway_attachment.vpn_attachment]
 }
 
 resource "aws_route" "vpn_access_pri_a" {
-  route_table_id         = aws_route_table.pri_a.id
+  route_table_id         = aws_route_table.pri.id
   destination_cidr_block = var.azure_cidr
   gateway_id             = aws_vpn_gateway.main.id
+  depends_on = [aws_vpn_gateway_attachment.vpn_attachment]
 }
 
-resource "aws_route" "vpn_access_pri_c" {
-  route_table_id         = aws_route_table.pri_c.id
-  destination_cidr_block = var.azure_cidr
-  gateway_id             = aws_vpn_gateway.main.id
-} */
-
-# Public Route Table에 VPN 경로 전파
-resource "aws_vpn_gateway_route_propagation" "pub" {
-  vpn_gateway_id = aws_vpn_gateway.main.id
-  route_table_id = aws_route_table.pub.id
-}
-
-# Private Route Table A에 VPN 경로 전파
-resource "aws_vpn_gateway_route_propagation" "pri_a" {
-  vpn_gateway_id = aws_vpn_gateway.main.id
-  route_table_id = aws_route_table.pri_a.id
-}
-
-# Private Route Table C에 VPN 경로 전파
-resource "aws_vpn_gateway_route_propagation" "pri_c" {
-  vpn_gateway_id = aws_vpn_gateway.main.id
-  route_table_id = aws_route_table.pri_c.id
-}
 
 ####################################################
 # aws_route53_resolver로 azure dns reslover를 사용

@@ -100,3 +100,22 @@ resource "azurerm_mysql_flexible_database" "database" {
   charset             = "utf8mb4"
   collation           = "utf8mb4_unicode_ci"
 }
+
+###
+# myloader를 사용한 rds 덤프를 위한 gtid 설정
+# Azure Database 설정값 변경
+resource "azurerm_mysql_flexible_server_configuration" "no_ssl" {
+  #네임값이 중요하다. 실제 옵션을 이 네임으로 지정하는 듯?
+  name                = "gtid_mode"
+  resource_group_name = azurerm_resource_group.rg.name
+  server_name         = azurerm_mysql_flexible_server.mysql.name
+  value               = "ON"
+}
+
+resource "azurerm_mysql_flexible_server_configuration" "no_ssl" {
+  #네임값이 중요하다. 실제 옵션을 이 네임으로 지정하는 듯?
+  name                = "enforce_gtid_consistency"
+  resource_group_name = azurerm_resource_group.rg.name
+  server_name         = azurerm_mysql_flexible_server.mysql.name
+  value               = "ON"
+}
