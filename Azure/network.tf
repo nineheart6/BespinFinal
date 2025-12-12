@@ -141,7 +141,7 @@ resource "azurerm_virtual_network_gateway" "vpn_gateway" {
 
 # AWS 완료 후 주석 풀고 값 넣고 실행?
 # 1. Local Network Gateway (AWS의 정보를 Azure에 등록)
-/* resource "azurerm_local_network_gateway" "aws_lng" {
+resource "azurerm_local_network_gateway" "aws_lng" {
   name                = "aws-local-gateway"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
@@ -165,4 +165,4 @@ resource "azurerm_virtual_network_gateway_connection" "azure_to_aws" {
 
   # AWS에서 설정한 Pre-Shared Key와 동일해야 함
   shared_key = var.vpn_shared_key
-} */
+}
