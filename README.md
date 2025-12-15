@@ -38,3 +38,7 @@ ssh-keygen -m PEM -f mykey -N ""
 3. output에서의 값을 aws variable에 마저 채워넣기
 4. aws apply
 5. azure에서 apply
+
+## Route53 test
+1. alb에 대한 https 접속 테스트(콘솔 사용)
+2. route53 failover test

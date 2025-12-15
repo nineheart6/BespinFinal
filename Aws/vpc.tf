@@ -119,7 +119,7 @@ resource "aws_nat_gateway" "regional" {
 resource "aws_route_table" "pri" {
   vpc_id = aws_vpc.main.id
   tags = {
-    Name = "tf-rtb-private1-ap-northeast-2a"
+    Name = "tf-rtb-private1-ap-northeast-2"
   }
 }
 
