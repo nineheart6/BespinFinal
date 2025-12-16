@@ -138,9 +138,9 @@ resource "azurerm_virtual_network_gateway" "vpn_gateway" {
     subnet_id                     = azurerm_subnet.gateway_subnet.id
   }
 }
-#######
+# ---------------------------------------------------------
 # vpn connection
-#######
+# ---------------------------------------------------------
 # AWS 완료 후 주석 풀고 값 넣고 실행
 # 1. Local Network Gateway (AWS의 정보를 Azure에 등록)
 resource "azurerm_local_network_gateway" "aws_lng" {

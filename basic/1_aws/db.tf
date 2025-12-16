@@ -20,6 +20,17 @@ resource "aws_vpc_security_group_ingress_rule" "allow_mariadb" {
   referenced_security_group_id = aws_security_group.bastion.id
 }
 
+
+resource "aws_vpc_security_group_ingress_rule" "allow_dumpserver" {
+  security_group_id            = aws_security_group.db.id
+  description                  = "DBport from web"
+  from_port                    = 3306
+  to_port                      = 3306
+  ip_protocol                  = "tcp"
+  referenced_security_group_id = aws_security_group.private_db_worker.id
+}
+
+
 resource "aws_vpc_security_group_egress_rule" "allow_all_db" {
   security_group_id = aws_security_group.db.id
   description       = "outbound_all"
