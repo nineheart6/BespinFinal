@@ -90,9 +90,13 @@ resource "azurerm_linux_virtual_machine" "vm" {
     version   = "latest"
   }
 
-  # [추가됨] user_data 설정
-  # templatefile 함수로 파일을 읽고, "base64로 인코딩하여" Azure에 전달합니다.
-  # 현재는 전달할 변수가 없으므로 두 번째 인자는 빈 맵 {} 입니다.
-  user_data = base64encode(templatefile("userdata.tftpl", {}))
-
+  user_data = base64encode(templatefile("userdata.tftpl", {
+    db_host     = azurerm_mysql_flexible_server.mysql.fqdn
+    db_admin    = azurerm_mysql_flexible_server.mysql.administrator_login
+    db_password = azurerm_mysql_flexible_server.mysql.administrator_password
+  }))
+  depends_on = [
+    azurerm_mysql_flexible_server.mysql,
+    azurerm_network_security_group.nsg # 방화벽 규칙이 있다면 이것도 포함
+  ]
 }

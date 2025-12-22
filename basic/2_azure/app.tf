@@ -17,6 +17,6 @@ resource "azurerm_storage_account" "dest_storage" {
 # 3. Blob Container (데이터가 담길 폴더)
 resource "azurerm_storage_container" "dest_container" {
   name                  = "from-s3-data"
-  storage_account_name  = azurerm_storage_account.dest_storage.name
+  storage_account_id  = azurerm_storage_account.dest_storage.id
   container_access_type = "private"
 }
